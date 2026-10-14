@@ -112,3 +112,7 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# AutoSave plugin temporary backups
+/[Aa]ssets/[Ss]cenes/[Aa]uto[Ss]ave/
+/[Aa]ssets/[Ss]cenes/[Aa]uto[Ss]ave.meta

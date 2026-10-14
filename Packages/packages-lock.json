@@ -1,5 +1,29 @@
 {
   "dependencies": {
+    "com.coplaydev.unity-mcp": {
+      "version": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.modules.animation": "1.0.0",
+        "com.unity.modules.imageconversion": "1.0.0",
+        "com.unity.modules.physics": "1.0.0",
+        "com.unity.modules.physics2d": "1.0.0",
+        "com.unity.modules.uielements": "1.0.0",
+        "com.unity.modules.screencapture": "1.0.0",
+        "com.unity.modules.unitywebrequest": "1.0.0",
+        "com.unity.nuget.newtonsoft-json": "3.0.2",
+        "com.unity.test-framework": "1.1.31"
+      },
+      "hash": "30d22075093d1d35dfb0091c1c7550e9ad948577"
+    },
+    "com.tarodev.autosave": {
+      "version": "https://github.com/Matthew-J-Spencer/Tarodev.git?path=Assets/Plugins/AutoSave",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "5026d04051a17eb186661fd5d311c0eb7fe98dde"
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.14",
       "depth": 0,
@@ -75,6 +99,13 @@
     "com.unity.nuget.mono-cecil": {
       "version": "1.11.6",
       "depth": 3,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.nuget.newtonsoft-json": {
+      "version": "3.2.2",
+      "depth": 1,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"
@@ -183,6 +214,15 @@
         "com.unity.modules.jsonserialize": "1.0.0"
       },
       "url": "https://packages.unity.com"
+    },
+    "com.youngwoocho02.unity-cli-connector": {
+      "version": "https://github.com/youngwoocho02/unity-cli.git?path=unity-connector",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.1"
+      },
+      "hash": "07c62fd29f1e6d29d8f9a504b968bedbbd47ddc8"
     },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",
