@@ -674,6 +674,7 @@ GameObject:
   - component: {fileID: 719355786}
   - component: {fileID: 719355785}
   - component: {fileID: 719355787}
+  - component: {fileID: 719355788}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -830,6 +831,30 @@ MonoBehaviour:
   restartDelay: 1
   deathTriggerName: Die
   fallbackFallSpeed: 120
+--- !u!114 &719355788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 719355775}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14f01aa154a74e64c8c1f3f38ce8bfeb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  ghostDelay: 0.4
+  ghostCatchupSpeed: 2
+  lowHealthThreshold: 0.25
+  screenOffset: {x: 30, y: 30}
+  barWidth: 260
+  barHeight: 22
+  healthColor: {r: 0.2, g: 0.85, b: 0.35, a: 0.95}
+  ghostColor: {r: 1, g: 0.85, b: 0.3, a: 0.85}
+  backgroundColor: {r: 0.08, g: 0.08, b: 0.08, a: 0.8}
+  uguiPrimaryBar: {fileID: 0}
+  uguiGhostBar: {fileID: 0}
+  uguiHealthText: {fileID: 0}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -946,12 +971,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 111614, guid: 2599104a4a2a5214f8407d03827b5eff, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1739995473}
-    - targetCorrespondingSourceObject: {fileID: 111614, guid: 2599104a4a2a5214f8407d03827b5eff, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1739995474}
-    - targetCorrespondingSourceObject: {fileID: 111614, guid: 2599104a4a2a5214f8407d03827b5eff, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1739995475}
   m_SourcePrefab: {fileID: 100100000, guid: 2599104a4a2a5214f8407d03827b5eff, type: 3}
 --- !u!4 &955492216 stripped
 Transform:
@@ -1208,35 +1227,6 @@ MonoBehaviour:
   centerGap: 6
   dotSize: 3
   hideSystemCursor: 1
---- !u!114 &1739995474
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1739995472}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b67c6194bbe44d0a8875cac3cd14ba5c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Study3D.Combat.DamageFlash
-  flashColor: {r: 1, g: 1, b: 1, a: 1}
-  flashIntensity: 2.5
-  flashDuration: 0.1
---- !u!114 &1739995475
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1739995472}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4b7298734a248dbb3b8b3adff981a8a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Study3D.Combat.Health
-  maxHealth: 100
-  startingHealth: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
