@@ -116,3 +116,6 @@ InitTestScene*.unity*
 # AutoSave plugin temporary backups
 /[Aa]ssets/[Ss]cenes/[Aa]uto[Ss]ave/
 /[Aa]ssets/[Ss]cenes/[Aa]uto[Ss]ave.meta
+
+/Screenshots/
+Screenshots
