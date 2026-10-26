@@ -10,6 +10,7 @@ namespace Study3D.AI
     /// 2. 【攻击动作联动】：解耦监听 EnemyAI.OnAttack 事件，语义化触发攻击动作（Attack 触发器，支持 Inspector 自由配置，并对历史 Shoot 进行友好向下兼容）。
     /// 3. 【无模型兜底机制】：在没有 Animator 的白模（如胶囊体）阶段，自动切换材质警示色反馈追击与待机状态，保障开发调试体验。
     /// </summary>
+    [RequireComponent(typeof(Animator))]
     public class EnemyAnimation : MonoBehaviour
     {
         [Header("动画组件引用")]
@@ -18,10 +19,22 @@ namespace Study3D.AI
 
         [Header("动画参数配置（解耦与语义化）")]
         [Tooltip("驱动移动混合树的浮点参数名称")]
-        [SerializeField] private string speedParameterName = "Speed";
+        [SerializeField] private string speedParameterName = "speed";
 
         [Tooltip("触发攻击动画的触发器名称（近战建议设为 Attack，远程射击可设为 Shoot，自爆可设为 Explode）")]
-        [SerializeField] private string attackTriggerName = "Attack";
+        [SerializeField] private string attackTriggerName = "attack";
+
+        [Tooltip("触发死亡动画的布尔参数名称（若无死亡动画可留空）")]
+        [SerializeField] private string isDeathParameterName = "isDeath";
+
+        [Tooltip("触发复活动画的触发器名称（若无复活动画可留空）")]
+        [SerializeField] private string reviveTriggerName = "revive";
+
+        [Tooltip("触发受击动画的触发器名称（若无受击动画可留空）")]
+        [SerializeField] private string damageTriggerName = "damage";
+
+        [Tooltip("触发出生动画的触发器名称（若无出生动画可留空）")]
+        [SerializeField] private string swapTriggerName = "spawn";
 
         [Header("速度阻尼参数")]
         [Tooltip("速度插值平滑阻尼时间（秒），避免瞬时速度跳变导致的动作抽搐")]
@@ -33,8 +46,18 @@ namespace Study3D.AI
         // 运行时哈希缓存（避免每帧字符串运算性能浪费）
         private int _speedHash;
         private int _attackHash;
+        private int _isDeathHash;
+        private int _reviveHash;
+        private int _damageHash;
+        private int _spawnHash;
         private bool _hasSpeedParam;
         private bool _hasAttackParam;
+        private bool _hasIsDeathParam;
+        private bool _hasReviveParam;
+        private bool _hasDamageParam;
+        private bool _hasSpawnParam;
+
+
 
         private NavMeshAgent _agent;
         private EnemyAI _enemyAI;
@@ -54,11 +77,11 @@ namespace Study3D.AI
             CacheAndValidateParameters();
 
             // 缓存渲染器与初始材质颜色（用于白模无动画时的变色兜底）
-            _renderer = GetComponentInChildren<Renderer>();
-            if (_renderer != null && _renderer.sharedMaterial != null && _renderer.sharedMaterial.HasProperty("_BaseColor"))
-            {
-                _originalColor = _renderer.sharedMaterial.GetColor("_BaseColor");
-            }
+            // _renderer = GetComponentInChildren<Renderer>();
+            // if (_renderer != null && _renderer.sharedMaterial != null && _renderer.sharedMaterial.HasProperty("_BaseColor"))
+            // {
+            //     _originalColor = _renderer.sharedMaterial.GetColor("_BaseColor");
+            // }
         }
 
         private void OnEnable()
@@ -67,6 +90,12 @@ namespace Study3D.AI
             {
                 _enemyAI.OnAttack += HandleAttackAnimation;
                 _enemyAI.OnStateChanged += HandleStateChanged;
+                _enemyAI.OnDamage += HandleDamageAnimation;
+                _enemyAI.OnDeath += HandleDeathAnimation;
+                _enemyAI.OnRevive += HandleReviveAnimation;
+                _enemyAI.OnSpawn += HandleSpawnAnimation;
+
+                
             }
         }
 
@@ -76,6 +105,8 @@ namespace Study3D.AI
             {
                 _enemyAI.OnAttack -= HandleAttackAnimation;
                 _enemyAI.OnStateChanged -= HandleStateChanged;
+                _enemyAI.OnDamage -= HandleDamageAnimation;
+                _enemyAI.OnDeath -= HandleDeathAnimation;
             }
         }
 
@@ -111,13 +142,48 @@ namespace Study3D.AI
 
             if (state == EnemyAI.EnemyState.Chase)
             {
-                // 追逐状态亮起狂暴橙色
-                _renderer.material.SetColor("_BaseColor", new Color(1f, 0.4f, 0f));
+                
             }
-            else if (state == EnemyAI.EnemyState.Idle)
+
+        }
+
+        private void HandleDamageAnimation()
+        {
+            if (animator != null && _hasDamageParam)
             {
-                // 待机恢复初始颜色
-                _renderer.material.SetColor("_BaseColor", _originalColor);
+                animator.SetTrigger(_damageHash);
+            }
+        }
+
+        private void HandleDeathAnimation()
+        {
+            if (animator != null && _hasIsDeathParam)
+            {
+                animator.SetBool(_isDeathHash, true);               
+            }
+        }
+
+        private void HandleReviveAnimation()
+        {
+            if (animator != null && _hasReviveParam)
+            {
+                animator.SetTrigger(_reviveHash);
+                if (_hasIsDeathParam)
+                {
+                    animator.SetBool(_isDeathHash, false);
+                }
+            }
+        }
+
+        private void HandleSpawnAnimation()
+        {
+            if (animator != null && _hasSpawnParam)
+            {
+                animator.SetTrigger(_spawnHash);
+                if (_hasIsDeathParam)
+                {
+                    animator.SetBool(_isDeathHash, false);
+                }
             }
         }
 
@@ -128,7 +194,10 @@ namespace Study3D.AI
         {
             _speedHash = Animator.StringToHash(speedParameterName);
             _attackHash = Animator.StringToHash(attackTriggerName);
-
+            _isDeathHash = Animator.StringToHash(isDeathParameterName);
+            _reviveHash = Animator.StringToHash(reviveTriggerName);
+            _damageHash = Animator.StringToHash(damageTriggerName);
+            _spawnHash = Animator.StringToHash(swapTriggerName);
             if (animator == null || animator.runtimeAnimatorController == null)
             {
                 _hasSpeedParam = false;
@@ -138,18 +207,10 @@ namespace Study3D.AI
 
             _hasSpeedParam = HasParameter(animator, _speedHash);
             _hasAttackParam = HasParameter(animator, _attackHash);
+            _hasIsDeathParam = HasParameter(animator, _isDeathHash);
+            _hasReviveParam = HasParameter(animator, _reviveHash);
+            _hasDamageParam = HasParameter(animator, _damageHash);
 
-            // 智能兼容：如果配置的 Attack 参数不存在，但发现了 Shoot 参数（例如借用了 Player 的动画控制器），自动回退并友好提示
-            if (!_hasAttackParam)
-            {
-                int shootHash = Animator.StringToHash("Shoot");
-                if (HasParameter(animator, shootHash))
-                {
-                    _attackHash = shootHash;
-                    _hasAttackParam = true;
-                    Debug.Log($"[EnemyAnimation] 当前 Animator 未找到 '{attackTriggerName}' 参数，但检测到 'Shoot'，已自动启用兼容回退。");
-                }
-            }
         }
 
         private static bool HasParameter(Animator targetAnimator, int paramHash)

@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Study3D.Combat;
+using Study3D.AI;
 
 namespace Study3D.Player
 {
@@ -54,6 +55,9 @@ namespace Study3D.Player
         [SerializeField] private Image uguiPrimaryBar;
         [SerializeField] private Image uguiGhostBar;
         [SerializeField] private Text uguiHealthText;
+
+        [Header("波次管理器引用（自动查找，亦可手动指定）")]
+        [SerializeField] private WaveManager waveManager;
 
         // 核心数值与插值状态
         private Health _health;

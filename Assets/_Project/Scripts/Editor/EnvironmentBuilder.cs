@@ -1,4 +1,5 @@
 using System.IO;
+using Study3D.AI;
 using Study3D.Combat;
 using Study3D.Player;
 using UnityEditor;
@@ -186,41 +187,83 @@ namespace Study3D.Editor
             }
 
             // 新增远距离靶标 (Far Target ~25m)
-            CreatePracticeDummy("TargetDummy_Far", parent, new Vector3(0f, 2.0f, 20f), mats.BarrelRed);
+            CreatePracticeDummy("TargetDummy_Far", parent, new Vector3(0f, 1.0f, 20f));
 
             // 新增左路集装箱后掩护靶标 (Left Flank Target)
-            CreatePracticeDummy("TargetDummy_LeftFlank", parent, new Vector3(-13f, 2.0f, 14f), mats.BarrelRed);
+            CreatePracticeDummy("TargetDummy_LeftFlank", parent, new Vector3(-13f, 1.0f, 14f));
 
             // 新增高台狙击哨位靶标 (Elevated Platform Target ~2.7m 高)
-            CreatePracticeDummy("TargetDummy_HighPlatform", parent, new Vector3(18f, 3.7f, 12f), mats.BarrelRed);
+            CreatePracticeDummy("TargetDummy_HighPlatform", parent, new Vector3(18f, 2.7f, 12f));
         }
 
-        private static void CreatePracticeDummy(string name, Transform parent, Vector3 pos, Material mat)
+        private static void CreatePracticeDummy(string name, Transform parent, Vector3 pos)
         {
+            var prefabPath = "Assets/_Project/Prefabs/Skeleton_110.prefab";
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             var dummy = GameObject.Find(name);
             if (dummy == null)
             {
-                dummy = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+
+                dummy = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
                 dummy.name = name;
                 Undo.RegisterCreatedObjectUndo(dummy, "Create Dummy");
             }
 
             dummy.transform.SetParent(parent, false);
             dummy.transform.position = pos;
-            dummy.transform.localScale = new Vector3(1f, 1f, 1f);
+            dummy.transform.localScale = new Vector3(2f, 2f, 2f);
+            dummy.transform.rotation = Quaternion.Euler(0f, 180f, 0f); // 面向玩家射击方向
 
-            var mr = dummy.GetComponent<MeshRenderer>();
-            if (mr != null) mr.sharedMaterial = mat;
+            var collider = dummy.GetComponent<CapsuleCollider>();
+            if (collider == null)
+            {
+                collider = dummy.AddComponent<CapsuleCollider>();
+            }
+            collider.center = new Vector3(0f, 1.0f, 0f);
+            collider.height = 1.7f;
+            collider.radius = 0.5f;
 
             // 赋予战斗契约组件
             var health = dummy.GetComponent<Health>();
             if (health == null) health = dummy.AddComponent<Health>();
 
-            var flash = dummy.GetComponent<DamageFlash>();
-            if (flash == null) flash = dummy.AddComponent<DamageFlash>();
-
             var dummyLogic = dummy.GetComponent<TargetDummy>();
             if (dummyLogic == null) dummyLogic = dummy.AddComponent<TargetDummy>();
+
+            var enemyAi = dummy.GetComponent<EnemyAI>();
+            if (enemyAi == null) enemyAi = dummy.AddComponent<EnemyAI>();
+
+            var enemyAnimation = dummy.GetComponent<EnemyAnimation>();
+            if (enemyAnimation == null) 
+            {
+                enemyAnimation = dummy.AddComponent<EnemyAnimation>();
+            }
+            SetupEnemyController(dummy);   
+        }
+
+        private static void SetupEnemyController(GameObject enemy)
+        {
+            // 确保 EnemyAnimation 组件存在
+            if (enemy == null)
+            {
+                Debug.LogWarning("[EnvironmentBuilder] Enemy 未找到，无法配置动画控制器。");
+                return;
+            }
+
+            // 创建 Animator Controller 并赋予 EnemyAnimation
+            var controllerPath = "Assets/_Project/Animators/EnemyAnimatorController.controller";
+            var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(controllerPath);
+            if (controller == null)
+            {
+                Debug.LogWarning($"[EnvironmentBuilder] Animator Controller 未找到: {controllerPath}");
+                return;
+            }
+            Animator animator = enemy.GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = enemy.AddComponent<Animator>();
+            }
+            animator.runtimeAnimatorController = controller;
         }
 
         private static void SetupPlayerSafeguard()

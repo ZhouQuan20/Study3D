@@ -59,6 +59,7 @@ namespace Study3D.Combat
             // 已死亡或伤害值不合法时忽略
             if (IsDead || damageAmount <= 0)
             {
+                Debug.LogWarning($"[{name}] 无效伤害请求：IsDead={IsDead}, damageAmount={damageAmount}");
                 return;
             }
 

@@ -23,7 +23,7 @@ namespace Study3D.Combat
 
         [Header("射击参数")]
         [Tooltip("每秒射击次数（发/秒）")]
-        [SerializeField] private float fireRate = 5f;
+        [SerializeField] private float fireRate = 3f;
 
         [Tooltip("是否支持按住左键连续连射")]
         [SerializeField] private bool autoFire = true;
@@ -77,7 +77,7 @@ namespace Study3D.Combat
             }
 
             // 计算发射起点与朝向
-            Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position + transform.forward * 1f + Vector3.up * 0.5f;
+            Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position + transform.forward * 1.7f + Vector3.up * 0.7f + transform.right * 0.2f;
             Quaternion spawnRot = firePoint != null ? firePoint.rotation : transform.rotation;
 
             // 从池子中借出一颗子弹（如果池内有闲置直接复用，没有则自动触发 CreateProjectile）

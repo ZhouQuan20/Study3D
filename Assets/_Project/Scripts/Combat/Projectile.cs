@@ -15,7 +15,7 @@ namespace Study3D.Combat
     public class Projectile : MonoBehaviour
     {
         [Header("飞行参数")]
-        [SerializeField] private float speed = 20f;
+        [SerializeField] private float speed = 15f;
         [SerializeField] private float lifetime = 3f;
         [SerializeField] private int damage = 10;
 
@@ -66,6 +66,7 @@ namespace Study3D.Combat
 
         private void Update()
         {
+
             // 沿自身朝向直线飞行
             transform.position += transform.forward * (speed * Time.deltaTime);
 

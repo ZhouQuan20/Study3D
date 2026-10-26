@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 using Study3D.Combat;
+using System.Collections;
 
 namespace Study3D.AI
 {
@@ -14,6 +15,7 @@ namespace Study3D.AI
     /// </summary>
     [RequireComponent(typeof(NavMeshAgent))]
     [RequireComponent(typeof(Health))]
+
     public class EnemyAI : MonoBehaviour
     {
         public enum EnemyState
@@ -21,7 +23,10 @@ namespace Study3D.AI
             Idle,
             Chase,
             Attack,
-            Dead
+            Dead,
+            revive,
+            damaged,
+            spawn
         }
 
         [Header("感知与追击参数")]
@@ -29,7 +34,7 @@ namespace Study3D.AI
         [SerializeField] private float detectionRadius = 8f;
 
         [Tooltip("近战攻击判定距离（米）")]
-        [SerializeField] private float attackRange = 1.8f;
+        [SerializeField] private float attackRange = 3f;
 
         [Tooltip("追击奔跑速度（米/秒）")]
         [SerializeField] private float chaseSpeed = 4.5f;
@@ -40,6 +45,9 @@ namespace Study3D.AI
 
         [Tooltip("每秒攻击频率（次/秒）")]
         [SerializeField] private float attackRate = 1.0f;
+
+        [Tooltip("挥刀到命中肉体的延迟时间（秒，对应斩击动画的劈落帧，约0.4~0.45秒）")]
+        [SerializeField] private float attackHitDelay = 0.55f;
 
         [Header("仇恨参数")]
         [Tooltip("受击激怒持续追击时间（秒）")]
@@ -66,6 +74,12 @@ namespace Study3D.AI
         /// </summary>
         public event System.Action OnAttack;
 
+        public event System.Action OnDeath;
+        public event System.Action OnDamage;
+        public event System.Action OnRevive;
+        public event System.Action OnSpawn;
+
+
         private void Awake()
         {
             _agent = GetComponent<NavMeshAgent>();
@@ -79,6 +93,12 @@ namespace Study3D.AI
         private void Start()
         {
             FindPlayerTarget();
+
+            // 防御性校验：检查敌人是否已正确放置在合法的 NavMesh 导航网格上
+            if (_agent != null && !_agent.isOnNavMesh)
+            {
+                Debug.LogWarning($"<color=yellow><b>[EnemyAI: {name}]</b> 寻路代理未放置在 NavMesh 上 (isOnNavMesh == false)！请检查场景地面是否已烘焙 NavMeshSurface。</color>", this);
+            }
         }
 
         private void OnEnable()
@@ -101,10 +121,8 @@ namespace Study3D.AI
 
         private void Update()
         {
-            if (_currentState == EnemyState.Dead) return;
-
             // 递减仇恨激怒时间
-            if (_aggroTimer > 0f)
+            if (_aggroTimer > 0f )
             {
                 _aggroTimer -= Time.deltaTime;
             }
@@ -127,6 +145,7 @@ namespace Study3D.AI
                 return;
             }
 
+
             // 计算与玩家的水平平面距离（忽略 Y 轴高度差对判定的干扰）
             Vector3 diff = _playerTransform.position - transform.position;
             diff.y = 0f;
@@ -146,6 +165,23 @@ namespace Study3D.AI
                 case EnemyState.Attack:
                     UpdateAttackState(distanceToPlayer, diff);
                     break;
+
+                case EnemyState.Dead:
+                    UpdateDeadState();
+                    break;
+                
+                case EnemyState.revive:
+                    UpdateReviveState();
+                    break;
+
+                case EnemyState.damaged:
+                    UpdateDamagedState();
+                    break;
+                
+                case EnemyState.spawn:
+                    UpdateSpawnState();
+                    break;
+                
             }
         }
 
@@ -220,19 +256,65 @@ namespace Study3D.AI
             }
         }
 
+        private void UpdateDeadState()
+        {
+
+
+
+        }
+
+        private void UpdateReviveState()
+        {
+            // 复活状态下的行为逻辑（可根据需求添加，例如播放复活动画、恢复血量等）
+
+
+        }
+
+        private void UpdateDamagedState()
+        {
+            // 受击状态下的行为逻辑（可根据需求添加，例如短暂眩晕、后退等）
+
+        }
+
+        private void UpdateSpawnState()
+        {
+            // 出生状态下的行为逻辑（可根据需求添加，例如播放出生动画、初始化属性等）
+            
+
+        }
+
         private void PerformAttack()
         {
             if (_playerTransform == null) return;
 
-            // 面向接口 IDamageable 对玩家造成伤害
-            var playerDamageable = _playerTransform.GetComponentInParent<IDamageable>();
-            if (playerDamageable != null && !playerDamageable.IsDead)
-            {
-                playerDamageable.TakeDamage(attackDamage, transform.position);
-            }
-
             OnAttack?.Invoke();
+
+            StartCoroutine(DealDamageAfterDelay(attackHitDelay));
+  
         }
+
+        private IEnumerator DealDamageAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            
+            if (_playerTransform == null || _currentState == EnemyState.Dead) yield break;
+
+            // 闪避博弈！如果在这 0.45 秒内玩家后跳拉开了距离，这刀就空砍！
+            Vector3 diff = _playerTransform.position - transform.position;
+            diff.y = 0f;
+            if (diff.magnitude <= attackRange * 1.2f)
+            {
+                var playerDamageable = _playerTransform.GetComponentInParent<IDamageable>();
+                if (playerDamageable != null && !playerDamageable.IsDead)
+                {
+                    // 此时刀锋正好砍在肉上，玩家开始扣血与闪白！
+                    playerDamageable.TakeDamage(attackDamage, transform.position);
+                }
+            }
+            
+
+        }
+            
 
         #endregion
 
@@ -251,12 +333,15 @@ namespace Study3D.AI
         /// </summary>
         private void HandleDamaged(int damage, Vector3 hitPoint)
         {
-            if (_currentState == EnemyState.Dead) return;
+            if (_currentState == EnemyState.Dead || (_health != null && _health.IsDead)) return;
 
             // 刷新受击激怒时间（至少保持持续追杀）
             _aggroTimer = damageAggroDuration;
 
             Debug.Log($"<color=#FF4444>[{name}] 受到 {damage} 点伤害！进入仇恨激怒状态（持续 {damageAggroDuration} 秒），全力追杀玩家！</color>");
+
+            // 触发受击动画事件
+            OnDamage?.Invoke();
 
             // 立即切换为追逐状态
             SwitchState(EnemyState.Chase);
@@ -267,15 +352,19 @@ namespace Study3D.AI
         /// </summary>
         private void HandleDeath()
         {
-            SwitchState(EnemyState.Dead);
-            // 重置怒气
-            _aggroTimer = 0;
-
+            
             if (_agent.isOnNavMesh)
             {
                 _agent.isStopped = true;
-                
+                _agent.ResetPath();
             }
+
+            // 重置怒气
+            _aggroTimer = 0;
+
+            SwitchState(EnemyState.Dead);
+
+            OnDeath?.Invoke();
         }
 
         /// <summary>
@@ -283,12 +372,22 @@ namespace Study3D.AI
         /// </summary>
         public void ResetAI()
         {
-            SwitchState(EnemyState.Idle);
+            
+
             if (_agent.isOnNavMesh)
             {
                 _agent.isStopped = true;
                 _agent.ResetPath();
             }
+
+            SwitchState(EnemyState.Idle);
+        }
+
+        public void TriggerRevive()
+        {
+            
+            OnRevive?.Invoke();
+            SwitchState(EnemyState.revive);
         }
 
         private void FindPlayerTarget()

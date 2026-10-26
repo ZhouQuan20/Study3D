@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "unityMCP": {
+      "type": "http",
+      "url": "http://127.0.0.1:8080/mcp"
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "codegraph": {
+      "command": "codegraph-mcp",
+      "args": [
+        "-e", "Library",
+        "-e", "Temp",
+        "-e", "Logs",
+        "-e", "obj",
+        "-e", ".vs"
+      ]
+    }
+  }
+}

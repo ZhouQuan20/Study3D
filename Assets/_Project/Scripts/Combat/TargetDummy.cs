@@ -1,4 +1,5 @@
 using System.Collections;
+using Study3D.AI;
 using UnityEngine;
 
 namespace Study3D.Combat
@@ -12,6 +13,7 @@ namespace Study3D.Combat
     /// </summary>
     [RequireComponent(typeof(Health))]
     [RequireComponent(typeof(Collider))]
+    [RequireComponent(typeof(EnemyAI))]
     public class TargetDummy : MonoBehaviour
     {
         [Header("重生与销毁")]
@@ -19,10 +21,11 @@ namespace Study3D.Combat
         [SerializeField] private bool autoRespawn = true;
 
         [Tooltip("自动复活延迟时间（秒）")]
-        [SerializeField] private float respawnDelay = 3f;
+        [SerializeField] private float respawnDelay = 1.5f;
 
         private Health _health;
         private Collider _collider;
+        private EnemyAI _enemyAI;
         private Renderer[] _renderers;
         private Vector3 _originalPosition;
         private Quaternion _originalRotation;
@@ -32,6 +35,7 @@ namespace Study3D.Combat
             _health = GetComponent<Health>();
             _collider = GetComponent<Collider>();
             _renderers = GetComponentsInChildren<Renderer>();
+            _enemyAI = GetComponent<EnemyAI>();
 
             _originalPosition = transform.position;
             _originalRotation = transform.rotation;
@@ -76,31 +80,29 @@ namespace Study3D.Combat
             }
             else
             {
-                Destroy(gameObject);
+                StartCoroutine(RespawnTogether());
             }
         }
 
         private IEnumerator RespawnRoutine()
         {
             // 倒下隐藏
-            SetRenderersVisible(false);
+            // SetRenderersVisible(false);
 
+            // 等待复活动画
             yield return new WaitForSeconds(respawnDelay);
 
-            // 复位位置与旋转（NavMeshAgent 需通过 Warp 同步位置）
-            if (TryGetComponent<UnityEngine.AI.NavMeshAgent>(out var agent) && agent.isOnNavMesh)
+            if (_enemyAI != null)
             {
-                agent.Warp(_originalPosition);
+                _enemyAI.TriggerRevive();
             }
-            else
-            {
-                transform.position = _originalPosition;
-            }
-            transform.rotation = _originalRotation;
 
-            if (TryGetComponent<Study3D.AI.EnemyAI>(out var enemyAI))
+            // 等待复活动画播完
+            yield return new WaitForSeconds(5f);
+
+            if (_enemyAI != null)
             {
-                enemyAI.ResetAI();
+                _enemyAI.ResetAI();
             }
 
             // 回满血量并恢复碰撞体
@@ -111,8 +113,15 @@ namespace Study3D.Combat
                 _collider.enabled = true;
             }
 
-            SetRenderersVisible(true);
-            Debug.Log($"[{name}] 靶子已重新生成！");
+            Debug.Log($"[{name}] 靶子已原地复活！");
+        }
+
+        private IEnumerator RespawnTogether()
+        {
+            // 等待复活动画
+            yield return new WaitForSeconds(respawnDelay);
+
+           
         }
 
         private void SetRenderersVisible(bool visible)
