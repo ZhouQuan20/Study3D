@@ -14,8 +14,9 @@ namespace Study3D.Player
     ///    - 顶层主血条：受击瞬时扣减，直接反映真实残存血量。
     ///    - 底层残影条：受击后在原位置停留缓冲（Delay），随后平滑追赶（Lerp Catch-up），视觉冲击感拉满。
     /// 3. 【濒死危机心跳 (Low Health Pulse)】：血量低于 25% 时触发正弦波心跳闪烁，营造绝境紧迫感。
-    /// 4. 【双模自适应渲染 (Hybrid Adaptive)】：
-    ///    - 零门槛自绘模式：无需在场景里手动搭建繁琐的 Canvas，挂载脚本即刻在左下角渲染现代科技风战术血条。
+    /// 4. 【波次系统战术看板联动】：自动探测场景中是否存在 WaveManager，在屏幕顶部渲染现代战术面板（波次进度、倒计时、存活怪物）。
+    /// 5. 【双模自适应渲染 (Hybrid Adaptive)】：
+    ///    - 零门槛自绘模式：无需在场景里手动搭建繁琐的 Canvas，挂载脚本即刻在界面渲染现代科技风战术血条与波次信息。
     ///    - 商业 UGUI 插槽：若未来拖入美术精致 UI（Slider/Image/Text），自动无缝切换为 UGUI 驱动，支持零代码重构升级。
     /// </summary>
     [RequireComponent(typeof(Health))]
@@ -51,13 +52,13 @@ namespace Study3D.Player
         [Tooltip("背景底槽颜色")]
         [SerializeField] private Color backgroundColor = new Color(0.08f, 0.08f, 0.08f, 0.8f);
 
+        [Header("波次管理器引用（自动查找，亦可手动指定）")]
+        [SerializeField] private WaveManager waveManager;
+
         [Header("可选 UGUI 插槽（若有美术制作的 UI 则自动优先使用）")]
         [SerializeField] private Image uguiPrimaryBar;
         [SerializeField] private Image uguiGhostBar;
         [SerializeField] private Text uguiHealthText;
-
-        [Header("波次管理器引用（自动查找，亦可手动指定）")]
-        [SerializeField] private WaveManager waveManager;
 
         // 核心数值与插值状态
         private Health _health;
@@ -70,6 +71,8 @@ namespace Study3D.Player
         // 自绘纯色纹理缓存（零垃圾回收）
         private Texture2D _whitePixelTexture;
         private GUIStyle _textStyle;
+        private GUIStyle _waveHeaderStyle;
+        private GUIStyle _waveSubStyle;
 
         private void Awake()
         {
@@ -84,6 +87,14 @@ namespace Study3D.Player
             _cachedMaxHp = _health.MaxHealth;
             _currentHealthRatio = _cachedMaxHp > 0 ? (float)_cachedCurrentHp / _cachedMaxHp : 1f;
             _ghostHealthRatio = _currentHealthRatio;
+        }
+
+        private void Start()
+        {
+            if (waveManager == null)
+            {
+                waveManager = FindAnyObjectByType<WaveManager>();
+            }
         }
 
         private void OnEnable()
@@ -174,10 +185,23 @@ namespace Study3D.Player
         /// </summary>
         private void OnGUI()
         {
-            // 若用户已经绑定了完整 UGUI，则关闭自绘以防重叠
-            if (uguiPrimaryBar != null) return;
+            InitStyles();
 
-            // 确保样式初始化
+            // 1. 绘制左下角生命槽（若用户绑定了 UGUI 则跳过）
+            if (uguiPrimaryBar == null)
+            {
+                DrawHealthBar();
+            }
+
+            // 2. 绘制屏幕顶部波次看板（若场景中有 WaveManager）
+            if (waveManager != null)
+            {
+                DrawWaveBanner();
+            }
+        }
+
+        private void InitStyles()
+        {
             if (_textStyle == null)
             {
                 _textStyle = new GUIStyle(GUI.skin.label)
@@ -188,23 +212,46 @@ namespace Study3D.Player
                 };
             }
 
+            if (_waveHeaderStyle == null)
+            {
+                _waveHeaderStyle = new GUIStyle(GUI.skin.label)
+                {
+                    fontStyle = FontStyle.Bold,
+                    fontSize = 18,
+                    alignment = TextAnchor.MiddleCenter
+                };
+            }
+
+            if (_waveSubStyle == null)
+            {
+                _waveSubStyle = new GUIStyle(GUI.skin.label)
+                {
+                    fontStyle = FontStyle.Normal,
+                    fontSize = 13,
+                    alignment = TextAnchor.MiddleCenter
+                };
+            }
+        }
+
+        private void DrawHealthBar()
+        {
             // 计算左下角绝对像素坐标
             float startX = screenOffset.x;
             float startY = Screen.height - screenOffset.y - barHeight;
 
-            // 1. 绘制暗色外底框与背景槽
+            // 绘制暗色外底框与背景槽
             Rect bgRect = new Rect(startX - 2f, startY - 2f, barWidth + 4f, barHeight + 4f);
             DrawRect(bgRect, new Color(0f, 0f, 0f, 0.6f));
             DrawRect(new Rect(startX, startY, barWidth, barHeight), backgroundColor);
 
-            // 2. 绘制底层残影缓冲条 (Ghost Bar)
+            // 绘制底层残影缓冲条 (Ghost Bar)
             if (_ghostHealthRatio > 0.001f)
             {
                 Rect ghostRect = new Rect(startX, startY, barWidth * _ghostHealthRatio, barHeight);
                 DrawRect(ghostRect, ghostColor);
             }
 
-            // 3. 绘制顶层主血条 (Primary Bar，低血量时有心跳红光呼吸)
+            // 绘制顶层主血条 (Primary Bar，低血量时有心跳红光呼吸)
             Color activeColor = healthColor;
             if (_currentHealthRatio <= lowHealthThreshold && _currentHealthRatio > 0f)
             {
@@ -219,9 +266,48 @@ namespace Study3D.Player
                 DrawRect(primaryRect, activeColor);
             }
 
-            // 4. 绘制文字信息 (HP: 85 / 100)
+            // 绘制文字信息 (HP: 85 / 100)
             _textStyle.normal.textColor = Color.white;
             GUI.Label(new Rect(startX + 8f, startY, barWidth, barHeight), $"HP  {_cachedCurrentHp} / {_cachedMaxHp}", _textStyle);
+        }
+
+        private void DrawWaveBanner()
+        {
+            float bannerWidth = 260f;
+            float bannerHeight = 56f;
+            float posX = (Screen.width - bannerWidth) * 0.5f;
+            float posY = 20f;
+
+            // 背景战术半透明底框
+            DrawRect(new Rect(posX, posY, bannerWidth, bannerHeight), new Color(0.05f, 0.05f, 0.08f, 0.75f));
+            DrawRect(new Rect(posX, posY + bannerHeight - 2f, bannerWidth, 2f), new Color(0.2f, 0.8f, 1f, 0.8f));
+
+            var state = waveManager.CurrentState;
+            if (state == WaveManager.WaveState.Countdown)
+            {
+                _waveHeaderStyle.normal.textColor = new Color(0.3f, 0.9f, 1f);
+                GUI.Label(new Rect(posX, posY + 4f, bannerWidth, 24f), $"第 {waveManager.CurrentWaveDisplayIndex} 波 即将到来", _waveHeaderStyle);
+
+                _waveSubStyle.normal.textColor = Color.yellow;
+                GUI.Label(new Rect(posX, posY + 28f, bannerWidth, 22f), $"准备倒计时: {waveManager.CountdownTimer:F1} 秒", _waveSubStyle);
+            }
+            else if (state == WaveManager.WaveState.Victory)
+            {
+                _waveHeaderStyle.normal.textColor = new Color(0.2f, 1f, 0.4f);
+                GUI.Label(new Rect(posX, posY + 4f, bannerWidth, 24f), "VICTORY! 全歼敌人", _waveHeaderStyle);
+
+                _waveSubStyle.normal.textColor = Color.white;
+                GUI.Label(new Rect(posX, posY + 28f, bannerWidth, 22f), "所有波次已全部肃清！", _waveSubStyle);
+            }
+            else
+            {
+                _waveHeaderStyle.normal.textColor = Color.white;
+                GUI.Label(new Rect(posX, posY + 4f, bannerWidth, 24f), $"WAVE {waveManager.CurrentWaveDisplayIndex} / {waveManager.TotalWavesCount}", _waveHeaderStyle);
+
+                _waveSubStyle.normal.textColor = new Color(1f, 0.6f, 0.2f);
+                string statusText = state == WaveManager.WaveState.Spawning ? "敌人正在集结入场..." : $"剩余敌人: {waveManager.AliveEnemiesCount}";
+                GUI.Label(new Rect(posX, posY + 28f, bannerWidth, 22f), statusText, _waveSubStyle);
+            }
         }
 
         private void DrawRect(Rect rect, Color color)

@@ -18,7 +18,7 @@ namespace Study3D.Combat
     {
         [Header("重生与销毁")]
         [Tooltip("死亡后是否自动复活（测试射击系统时建议开启）")]
-        [SerializeField] private bool autoRespawn = true;
+        [SerializeField] private bool autoRespawn = false;
 
         [Tooltip("自动复活延迟时间（秒）")]
         [SerializeField] private float respawnDelay = 1.5f;
